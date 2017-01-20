@@ -1,0 +1,85 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="资源文件">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="base">
+      <UniqueIdentifier>{89b89912-ae25-446d-8a1b-d4cae46169b3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="common">
+      <UniqueIdentifier>{d47ec4d6-ad54-4df0-87e1-610601931f14}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include">
+      <UniqueIdentifier>{fc2b997e-11d6-40d8-9735-1ec390701b90}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="lib">
+      <UniqueIdentifier>{e486ccc3-c11e-444f-b617-cfc2b02a6c6c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="test">
+      <UniqueIdentifier>{0a7dbc79-06a3-4f2e-9eb0-61537c24798f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="superserver">
+      <UniqueIdentifier>{c0d8fd04-8f4a-4b74-a810-7fd573383167}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\include\engine.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\macro.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\csCommon.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\superserver\superserver.h">
+      <Filter>superserver</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\test\test.cpp">
+      <Filter>test</Filter>
+    </ClCompile>
+    <ClCompile Include="..\include\zSocket.cpp">
+      <Filter>include</Filter>
+    </ClCompile>
+    <ClCompile Include="..\include\zTCPServer.cpp">
+      <Filter>include</Filter>
+    </ClCompile>
+    <ClCompile Include="..\include\zTCPTask.cpp">
+      <Filter>include</Filter>
+    </ClCompile>
+    <ClCompile Include="..\include\zThread.cpp">
+      <Filter>include</Filter>
+    </ClCompile>
+    <ClCompile Include="..\include\zTCPTaskPool.cpp">
+      <Filter>include</Filter>
+    </ClCompile>
+    <ClCompile Include="..\include\zLogger.cpp">
+      <Filter>include</Filter>
+    </ClCompile>
+    <ClCompile Include="..\include\zService.cpp">
+      <Filter>include</Filter>
+    </ClCompile>
+    <ClCompile Include="..\include\zNetService.cpp">
+      <Filter>include</Filter>
+    </ClCompile>
+    <ClCompile Include="..\superserver\superserver.cpp">
+      <Filter>superserver</Filter>
+    </ClCompile>
+    <ClCompile Include="..\superserver\ServerTask.cpp">
+      <Filter>superserver</Filter>
+    </ClCompile>
+    <ClCompile Include="..\superserver\serverManager.cpp">
+      <Filter>superserver</Filter>
+    </ClCompile>
+    <ClCompile Include="..\include\zEpoll.cpp">
+      <Filter>include</Filter>
+    </ClCompile>
+    <ClCompile Include="..\include\zTCPClient.cpp">
+      <Filter>include</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

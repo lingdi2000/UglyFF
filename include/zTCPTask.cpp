@@ -51,7 +51,7 @@ bool zTCPTask::ListeningRecv(bool needRecv)
 				if (Cmd::CMD_NULL == pNullCmd->cmd && Cmd::PARA_NULL == pNullCmd->para)
 				{
 					//测试而已
-					Zebra::logger->debug("服务端收到测试信号");
+					Zebra::logger->debug("服务端收到测试信号 %s:%d",mSocket->getIP(),mSocket->getPort());
 					clearTick();
 				}
 				else
@@ -143,11 +143,12 @@ void zTCPTask::checkSignal(const zRTime &ct)
 		}
 		else
 		{
-			//发送测试信号
-			Cmd::t_NullCmd tNullCmd;
-			//Zebra::logger->debug("服务端发送测试信号");
-			if (sendCmd(&tNullCmd, sizeof(tNullCmd)))
-				setTick();
+			////发送测试信号
+			//Cmd::t_NullCmd tNullCmd;
+			////Zebra::logger->debug("服务端发送测试信号");
+			//if (sendCmd(&tNullCmd, sizeof(tNullCmd)))
+			//重置 测试信号标志位为true
+			setTick();
 		}
 	}
 

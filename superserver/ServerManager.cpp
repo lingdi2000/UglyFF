@@ -1,4 +1,6 @@
 #include "superserver.h"
+#include"../include/engine.h"
+
 void ServerManager::addServer(ServerTask *task)
 {
 	Zebra::logger->debug("ServerManager::addServer()");
@@ -60,17 +62,17 @@ bool ServerManager::uniqueAdd(ServerTask *task)
 //wdServerID代表的服务器是否已经连接
 bool ServerManager::uniqueVerify(const WORD wdServerID)
 {
-	Zebra::logger->info("ServerManager::uniqueVerify id=%u", task->getID());
+	Zebra::logger->info("ServerManager::uniqueVerify id=%u", wdServerID);
 	ServerTaskHashmap_const_iterator it;
 	mutex.lock();
-	it = taskUniqueContainer.find(task->getID());
+	it = taskUniqueContainer.find(wdServerID);
 	if (it != taskUniqueContainer.end())
 	{
 		Zebra::logger->error("ServerManager::uniqueAdd");
 		mutex.unlock();
 		return false;
 	}
-	taskUniqueContainer.insert(ServerTaskHashmap_pair(task->getID(), task));
+	
 	mutex.unlock();
 	return true;
 }

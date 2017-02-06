@@ -1,109 +1,8 @@
+#ifndef _SUPPER_SERVER_H_
+#define _SUPPER_SERVER_H_
+
 #include "../include/engine.h"
 
-class SuperService :public zNetService
-{
-private:
-	GameZone_t gameZone; //游戏区编号
-
-
-	//游戏区名称
-	std::string zoneName;
-
-	WORD wdServerID; //服务器编号
-	WORD wdServerType;	//服务器类型，创建实例的时候确定 gateserver sessionserver
-	char pstrIP[MAX_IP_LENGTH];		//服务器内网ip地址
-	WORD wdPort;					//内网服务器端口
-	static SuperService *instance;
-
-	zTCPTaskPool *taskPool;
-private:
-	SuperService() :zNetService("管理服务器")
-	{
-		wdServerID = 1;
-		wdServerType = SUPERSERVER;
-		bzero_(pstrIP, sizeof(pstrIP));
-		wdPort = 0;
-		taskPool = NULL;
-	}
-
-	bool init();
-	void newTCPTask(const SOCKET sock, const struct sockaddr_in *addr);
-	void final();
-
-	bool getServerInfo();
-public:
-	~SuperService()
-	{
-		instance = NULL;
-
-		//关闭线程池
-		if (taskPool)
-		{
-			taskPool->final();
-			SAFE_DELETE(taskPool);
-		}
-	}
-
-	const int getPoolSize() const
-	{
-		if (taskPool)
-			return taskPool->getSize();
-		else
-			return 0;
-	}
-
-	static SuperService &getInstance()
-	{
-		if (NULL == instance)
-		{
-			instance = new SuperService();
-		}
-		return *instance;
-	}
-
-	static void delInstance()
-	{
-		SAFE_DELETE(instance);
-	}
-
-	void reloadConfig();
-
-
-
-	const GameZone_t &getZoneID() const
-	{
-		return gameZone;
-	}
-	void setZoneID(const GameZone_t &gameZone)
-	{
-		this->gameZone = gameZone;
-	}
-	const std::string &getZoneName() const
-	{
-		return zoneName;
-	}
-	void setZoneName(const char *zoneName)
-	{
-		this->zoneName = zoneName;
-	}
-	const WORD getID() const
-	{
-		return wdServerID;
-	}
-	const WORD getType() const
-	{
-		return wdServerType;
-	}
-	const char *getIP() const
-	{
-		return pstrIP;
-	}
-
-	const WORD getPort() const
-	{
-		return wdPort;
-	}
-};
 
 class SuperTimeTick :public zThread
 {
@@ -148,13 +47,36 @@ private:
 
 	bool readTime()
 	{
-
+		return false;
 	}
 	bool saveTime()
 	{
-
+		return false;
 	}
 };
+namespace std
+{
+	template<>
+	struct hash<Cmd::Super::ServerEntry>
+	{
+		size_t operator()(Cmd::Super::ServerEntry& se)
+		{
+			return se.wdServerID;
+		}
+	};
+};
+
+class ServerEntryHash
+{
+public:
+	std::size_t operator() (const Cmd::Super::ServerEntry& se)const
+	{
+		std::size_t x = 0;
+		x ^= std::hash<WORD>()(se.wdServerID);
+		return x;
+	}
+};
+
 
 class ServerTask : public zTCPTask
 {
@@ -205,7 +127,7 @@ private:
 
 	const char* GetServerTypeName(const WORD wdServerType);
 
-	typedef std::unordered_map <Cmd::Super::ServerEntry, bool> Container;
+	typedef std::unordered_map <Cmd::Super::ServerEntry, bool, ServerEntryHash> Container;
 	Container ses;
 };
 
@@ -223,9 +145,9 @@ private:
 	typedef ServerTaskHashmap::const_iterator ServerTaskHashmap_const_iterator;
 	typedef ServerTaskHashmap::value_type ServerTaskHashmap_pair;
 
-	
+
 	zMutex mutex;
-	Container container;	
+	Container container;
 	ServerTaskHashmap taskUniqueContainer;
 	static ServerManager *instance;
 	ServerManager() {};
@@ -260,3 +182,127 @@ public:
 	void responseOther(const WORD srcID, const WORD wdServerID);
 
 };
+
+
+
+class SuperService :public zNetService
+{
+private:
+	GameZone_t gameZone; //游戏区编号
+
+
+	//游戏区名称
+	std::string zoneName;
+
+	WORD wdServerID; //服务器编号
+	WORD wdServerType;	//服务器类型，创建实例的时候确定 gateserver sessionserver
+	char pstrIP[MAX_IP_LENGTH];		//服务器内网ip地址
+	WORD wdPort;					//内网服务器端口
+	static SuperService *instance;
+
+	zTCPTaskPool *taskPool;
+private:
+	SuperService() :zNetService("管理服务器")
+	{
+		wdServerID = 1;
+		wdServerType = SUPERSERVER;
+		bzero_(pstrIP, sizeof(pstrIP));
+		wdPort = 0;
+		taskPool = NULL;
+
+		Zebra::logger->debug("服务器 %s 启动 ",getServerName().c_str()); 
+
+	}
+
+	bool init();
+	void newTCPTask(const SOCKET sock, const struct sockaddr_in *addr);
+	void final()
+	{
+	
+	}
+
+
+	bool getServerInfo();
+public:
+	~SuperService()
+	{
+		instance = NULL;
+
+		//关闭线程池
+		if (taskPool)
+		{
+			taskPool->final();
+			SAFE_DELETE(taskPool);
+		}
+	}
+
+	const int getPoolSize() const
+	{
+		if (taskPool)
+			return taskPool->getSize();
+		else
+			return 0;
+	}
+
+	static SuperService* getInstance()
+	{
+		if (NULL == instance)
+		{
+			instance = new SuperService();
+		}
+		return instance;
+	}
+
+	static void delInstance()
+	{
+		SAFE_DELETE(instance);
+	}
+
+	void reloadConfig()
+	{
+	
+	}
+
+
+
+	const GameZone_t &getZoneID() const
+	{
+		return gameZone;
+	}
+	void setZoneID(const GameZone_t &gameZone)
+	{
+		this->gameZone = gameZone;
+	}
+	const std::string &getZoneName() const
+	{
+		return zoneName;
+	}
+	void setZoneName(const char *zoneName)
+	{
+		this->zoneName = zoneName;
+	}
+	const WORD getID() const
+	{
+		return wdServerID;
+	}
+	const WORD getType() const
+	{
+		return wdServerType;
+	}
+	const char *getIP() const
+	{
+		return pstrIP;
+	}
+
+	const WORD getPort() const
+	{
+		return wdPort;
+	}
+	void setPort(WORD port)
+	{
+		wdPort = port;
+	}
+};
+
+
+#endif

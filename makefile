@@ -1,5 +1,5 @@
 
-SUBDIRS = include test
+SUBDIRS = include test superserver
 
 .PHONY:all
 

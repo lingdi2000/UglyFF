@@ -19,7 +19,7 @@ void zLogger::debug(const char * format, ...)
 {
 	va_list argptr;
 	va_start(argptr, format);
-	int count = vsnprintf(NULL, 0, format, argptr);
+	int count = vsnprintf(NULL, 0, format, argptr) + 1;
 	va_end(argptr);
 
 	va_start(argptr, format);
@@ -30,7 +30,7 @@ void zLogger::debug(const char * format, ...)
 	std::string str(buf, count);
 	free(buf);
 
-
+	
 	
 	LOG4CPLUS_DEBUG(_logger, str.c_str());
 	
@@ -39,7 +39,7 @@ void zLogger::error(const char * format, ...)
 {
 	va_list argptr;
 	va_start(argptr, format);
-	int count = vsnprintf(NULL, 0, format, argptr);
+	int count = vsnprintf(NULL, 0, format, argptr) + 1;
 	va_end(argptr);
 
 	va_start(argptr, format);
@@ -56,7 +56,7 @@ void zLogger::info(const char * format, ...)
 {
 	va_list argptr;
 	va_start(argptr, format);
-	int count = vsnprintf(NULL, 0, format, argptr);
+	int count = vsnprintf(NULL, 0, format, argptr) + 1;
 	va_end(argptr);
 
 	va_start(argptr, format);
@@ -73,7 +73,7 @@ void zLogger::fatal(const char * format, ...)
 {
 	va_list argptr;
 	va_start(argptr, format);
-	int count = vsnprintf(NULL, 0, format, argptr);
+	int count = vsnprintf(NULL, 0, format, argptr) + 1;
 	va_end(argptr);
 
 	va_start(argptr, format);
@@ -90,7 +90,7 @@ void zLogger::warn(const char * format, ...)
 {
 	va_list argptr;
 	va_start(argptr, format);
-	int count = vsnprintf(NULL, 0, format, argptr);
+	int count = vsnprintf(NULL, 0, format, argptr) + 1;
 	va_end(argptr);
 
 	va_start(argptr, format);

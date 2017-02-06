@@ -131,6 +131,50 @@ namespace Cmd
 			{
 				return (int)wdServerID;
 			}
+
+			//用于 unordermap 需要重载
+			bool operator == (const ServerEntry& p)const
+			{
+				if (wdServerID != p.wdServerID)
+				{
+					return false;
+				}
+				if (wdServerType != p.wdServerType)
+				{
+					return false;
+				}
+				if (strcmp(pstrIP, p.pstrIP) != 0)
+				{
+					return false;
+				}
+				if (wdPort != p.wdPort)
+				{
+					return false;
+				}
+				if (state != p.state)
+				{
+					return false;
+				}
+				return true;
+			}
+		};
+
+		struct ServerEntryHash
+		{
+			size_t operator()(ServerEntry &se)
+			{
+				//只通过serverID来判断 hash值
+				std::hash<WORD> sh;
+				return sh(se.wdServerID);
+			}
+		};
+
+		struct ServerEntryEqual
+		{
+			bool operator() (ServerEntry &se, ServerEntry& se2)
+			{
+				return se == se2;
+			}
 		};
 
 		const BYTE CMD_STARTUP = 1;
@@ -146,7 +190,11 @@ namespace Cmd
 			WORD wdServerType;
 			char pstrIP[MAX_IP_LENGTH];
 			t_Startup_Request()
-				: t_NullCmd(CMD_STARTUP, PARA_STARTUP_REQUEST) {};
+				: t_NullCmd(CMD_STARTUP, PARA_STARTUP_REQUEST) 
+			{
+				wdServerType = 0;
+				memset(pstrIP,0,sizeof(pstrIP));
+			};
 		};
 
 		const BYTE PARA_STARTUP_RESPONSE = 2;
@@ -159,6 +207,14 @@ namespace Cmd
 				: t_NullCmd(CMD_STARTUP, PARA_STARTUP_RESPONSE) {};
 		};
 
+
+		const BYTE PARA_STARTUP_OK = 5;
+		struct t_Startup_OK : t_NullCmd
+		{
+			WORD wdServerID;
+			t_Startup_OK()
+				: t_NullCmd(CMD_STARTUP, PARA_STARTUP_OK) {};
+		};
 	};
 };
 

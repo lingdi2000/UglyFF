@@ -57,6 +57,16 @@ bool zTCPClient::connect()
 	return true;
 }
 
+bool zTCPClient::connect(const char* ip, const WORD port)
+{
+	this->ip = ip;
+	this->port = port;
+
+	return connect();
+}
+
+
+
 bool zTCPClient::sendCmd(const void *pstrCmd, const int nCmdLen)
 {
 	if (nCmdLen < 0 || pstrCmd == NULL)
@@ -88,6 +98,7 @@ void zTCPBufferClient::run()
 		//暂时都用epoll来接收消息
 		if (pSocket->m_bUserEpoll)
 		{
+			//检查是否有完整可以处理的消息，以及sock是否有效
 			int retcode = pSocket->WaitRecv(false);
 			if (retcode == -1)
 			{
@@ -110,7 +121,7 @@ void zTCPBufferClient::run()
 				Zebra::logger->error("zTCPBufferClient WaitSend 错误");
 				break;
 			}
-			else if (retcode == 1)
+			else if (retcode > 1)
 			{
 				if (!this->ListeningSend())
 				{

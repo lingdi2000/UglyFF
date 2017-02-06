@@ -35,9 +35,9 @@ bool zThread::start()
 		return true;
 	}
 
-	if (0 == pthread_create(&m_hThread, NULL, zThread::threadFunc,(void*)this))
+	if (0 != pthread_create(&m_hThread, NULL, zThread::threadFunc,(void*)this))
 	{
-		Zebra::logger->debug("创建线程失败 %s ", getThreadName().c_str());
+		Zebra::logger->debug("创建线程失败 %s 原因:%s ", getThreadName().c_str(), strerror(errno));
 		return false;
 	}
 

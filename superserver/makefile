@@ -3,10 +3,10 @@
 .SUFFIXES: .cpp .o
 
 CPE=g++
-target=run
+target=superserver
 INCLUDE=../include
 LIBDIR=/usr/local/lib
-INCOBJ=$(INCLUDE)/zSocket.o $(INCLUDE)/zLogger.o $(INCLUDE)/zEpoll.o $(INCLUDE)/zTCPServer.o $(INCLUDE)/zNetService.o $(INCLUDE)/zService.o $(INCLUDE)/zThread.o $(INCLUDE)/zTCPTaskPool.o $(INCLUDE)/zTCPTask.o $(INCLUDE)/zTCPClient.o
+INCOBJ=$(INCLUDE)/zSocket.o $(INCLUDE)/zLogger.o $(INCLUDE)/zEpoll.o $(INCLUDE)/zTCPServer.o $(INCLUDE)/zNetService.o $(INCLUDE)/zService.o $(INCLUDE)/zThread.o $(INCLUDE)/zTCPTaskPool.o $(INCLUDE)/zTCPTask.o
 
 
 INCFLAG=-I$(INCLUDE) 
@@ -14,7 +14,7 @@ CFLAGS=-c -g -std=c++11 -Wall
 LIBS=-L$(LIBDIR) -llog4cplus -lpthread
 
 
-OBJ=test.o
+OBJ= superserver.o ServerTask.o ServerManager.o 
 all:$(target)
 
 $(target):$(OBJ)

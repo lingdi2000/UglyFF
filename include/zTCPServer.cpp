@@ -13,6 +13,7 @@ zTCPServer::zTCPServer(const std::string& name)
 sock(INVALID_SOCKET)
 {
 	//打个日志
+	Zebra::logger->debug("zTCPServer %s ", name.c_str());
 }
 
 zTCPServer::~zTCPServer()
@@ -118,4 +119,10 @@ struct sockaddr_in& zTCPServer::getAddr()
 {
 	return addr_;
 }
+
+const char* zTCPServer::getIP()
+{
+	return inet_ntoa(addr_.sin_addr);
+}
+
 #endif

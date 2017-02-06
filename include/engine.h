@@ -1380,7 +1380,7 @@ private:
 
 	t_BufferCmdQueue tQueue; //发送封包缓冲区
 	zTCPTask*		pTask; //代表一个连接
-	t_BufferCmdQueue _rcv_queue;		//封包接收缓冲区
+	t_BufferCmdQueue _rcv_queue;		//封包接收缓冲区 epoll线程 和业务线程都需要使用所以要锁
 
 	
 	t_BufferCmdQueue _snd_queue;        /**< 加密缓冲指令队列  先不加密 框架搭起来先*/
@@ -1406,6 +1406,7 @@ private:
 	inline bool sendRawDataIM(const void *pBuffer, const int nSize);
 	inline int sendRawData_NoPoll(const void *pBuffer, const int nSize);
 	inline bool setNonblock();
+	inline bool setBlock();
 	inline int waitForRead();
 	inline int waitForWrite();
 	inline int recvToBuf();
@@ -1495,8 +1496,8 @@ public:
 	inline DWORD getBufferSize() const { return _rcv_queue.maxSize() + _snd_queue.maxSize(); }
 	inline zTCPTask*& GetpTask() { return pTask; } // [ranqd] 返回Task指针
 
-	DWORD RecvByte(DWORD size); // [ranqd] 请求读取单个字节
-	DWORD RecvData(DWORD dwNum = 0); // [ranqd] 通过Iocp收取数据
+	ssize_t RecvByte(DWORD size); // [ranqd] 请求读取单个字节
+	ssize_t RecvData(DWORD dwNum = 0); // [ranqd] 通过Iocp收取数据
 
 	int SendData(DWORD dwNum); // [ranqd] 通过Iocp发送数据
 
@@ -1656,11 +1657,11 @@ public:
 class Timer
 {
 public:
-	Timer(const float how_long, const int delay = 0) : _long((int)(how_long * 1000)), _timer(delay * 1000)
+	Timer(const float how_long, const int delay = 0) : _long(how_long), _timer(delay * 1000)
 	{
 
 	}
-	Timer(const float how_long, const zRTime cur) : _long((int)(how_long * 1000)), _timer(cur)
+	Timer(const float how_long, const zRTime cur) : _long(how_long), _timer(cur)
 	{
 		_timer.addDelay(_long);
 	}
@@ -1704,6 +1705,7 @@ public:
 	int Accept(struct sockaddr_in *addr);
 	SOCKET getSockFd();
 	struct sockaddr_in& getAddr();
+	const char* getIP();
 
 };
 
@@ -1797,8 +1799,8 @@ private:
 
 	bool uniqueVerified;              /**< 是否通过了唯一性验证 */
 	const bool _checkSignal;            /**< 是否发送链路检测信号 */
-	Timer _ten_min;
-	bool tick;
+	Timer _ten_min;    //间隔30秒
+	bool tick;  //false 表示收到测试信号
 
 
 public:
@@ -1819,7 +1821,7 @@ public:
 		const struct sockaddr_in *addr = NULL,
 		const bool compress = false,
 		const bool checkSignal = true,
-		const bool useEpoll = USE_EPOOL) :pool(pool), lifeTime(), _checkSignal(checkSignal), _ten_min(600), tick(false)
+		const bool useEpoll = USE_EPOOL) :pool(pool), lifeTime(), _checkSignal(checkSignal), _ten_min(30 * 1000), tick(false)
 	{
 		terminate = terminate_no;
 		terminate_wait = false;
@@ -1851,7 +1853,7 @@ public:
 		mSocket->fillPollFD(event_, events);
 	}
 
-	bool checkVerifyTimeout(const zRTime &ct, const QWORD interval = 5000)const
+	bool checkVerifyTimeout(const zRTime &ct, const QWORD interval = 10000)const
 	{
 		return (lifeTime.elapse(ct) > interval);
 	}
@@ -2105,6 +2107,12 @@ public:
 	{
 		return _ten_min(ct);
 	}
+
+	zSocket* getSock()
+	{
+		return mSocket;
+	}
+
 };
 
 
@@ -2114,7 +2122,7 @@ public:
 	struct CallBack
 	{
 		virtual void exec(zThread *e) = 0;
-		virtual ~CallBack();
+		virtual ~CallBack(){};
 	};
 
 	typedef std::vector<zThread *> Container; //容器类型
@@ -2197,7 +2205,7 @@ class zEpoll
 {
 
 private:
-	bool isValid() const;
+	
 	int max;
 	int epoll_fd;
 	int epoll_timeout;
@@ -2215,6 +2223,7 @@ public:
 	~zEpoll();
 	int create();
 	int add(zSocket* zSock, epoll_event *event);
+	int add(zSocket* zSock, uint32_t event);
 	int mod(zSocket* zSock, epoll_event *event);
 	int del(zSocket* zSock, epoll_event *event);
 	void setMaxEvents(int maxEvents);
@@ -2225,18 +2234,19 @@ public:
 	{
 		return backEvents[index];
 	}
+	const epoll_event* getEventByIndex(int index)
+	{
+		return &backEvents[index];
+	}
 	int getEpollFd()const
 	{
 		return epoll_fd;
 	}
+	bool isValid() const;
 };
 
 
-class zEpollRecvThread : public zThread
-{
-
-};
-
+class zEpollRecvThread;
 
 
 
@@ -2269,7 +2279,7 @@ public:
 		terminate = true;
 	}
 
-	void main();
+	virtual void main();
 
 	static zService *serviceInstance()
 	{
@@ -2317,15 +2327,16 @@ private:
 	std::string serviceName;
 
 	zAcceptThread *pAcceptThread;
-
+	zEpollRecvThread *pEpollThread;
+	
 	
 
 public:
 	zTCPServer *tcpServer;
-
+	zEpoll epoll;
 public:
 	virtual ~zNetService() { instance = NULL; }
-	virtual void newTCPTask(const SOCKET sock, const struct sockaddr_in *addr) = 0;
+	virtual void newTCPTask(const SOCKET sock, const struct sockaddr_in *addr){};
 	virtual const int getPoolSize() const
 	{
 		return 0;
@@ -2340,10 +2351,17 @@ public:
 
 		serviceName = name;
 		tcpServer = NULL;
+		
 	}
 	bool init(WORD port);
+	virtual bool init()
+	{
+		return init(8090);
+		
+	}
 	bool serviceCallback();
 	void final();
+	std::string getServerName();
 };
 
 
@@ -2366,6 +2384,7 @@ public:
 			struct sockaddr_in addr;
 			if (pService->tcpServer != NULL)
 			{
+				Zebra::logger->debug("zAcceptThread等待客户端连接 ");
 				int retcode = pService->tcpServer->Accept(&addr);
 				if (retcode >= 0)
 				{
@@ -2376,6 +2395,89 @@ public:
 		}
 	}
 };
+
+class zEpollRecvThread : public zThread
+{
+public:
+	zEpollRecvThread(zNetService *p, zEpoll *ep,const std::string &name) :zThread(name)
+	{
+		this->pService = p;
+		this->epoll = ep;
+	}
+	zNetService* pService;
+	zEpoll* epoll;
+	void run()
+	{
+		Zebra::logger->debug("EpollThread Run %s", getThreadName().c_str());
+		while (!isFinal())
+		{
+			int ret = epoll->wait();
+			if (ret == -1)
+			{
+				Zebra::logger->error("zEpollRecvThread线程%s 出错%s", getThreadName().c_str(),strerror(errno));
+				pService->Terminate(); //epoll 出错 结束程序
+				break;
+			}
+			else if (ret == -2)
+			{
+				Zebra::logger->error("zEpollRecvThread线程%s, epoll无效", getThreadName().c_str());
+				pService->Terminate();//epoll 出错 结束程序
+				break;
+			}
+			else
+			{
+				//遍历事件
+				for (int i = 0; i < ret; i++)
+				{
+					if ((*epoll)[i].events & EPOLLERR & (*epoll)[i].events & EPOLLHUP)
+					{
+						zSocket *sock = (zSocket*)(*epoll)[i].data.ptr;
+						if (sock)
+						{
+							Zebra::logger->debug("连接断开 %s %d", sock->getIP(),sock->getPort());
+							sock->DisConnet();
+						}
+					}
+					else if ((*epoll)[i].events & EPOLLIN)
+					{
+						zSocket *sock = (zSocket*)(*epoll)[i].data.ptr;
+						if (sock)
+						{
+							ssize_t retRecv =  sock->RecvData();
+							if (retRecv > 0)
+							{
+								struct epoll_event epEvent;
+								epEvent.events = EPOLLIN;
+								epoll->add(sock, &epEvent);
+							}
+							else if (retRecv == 0)
+							{
+								if (errno == EINTR || errno == EWOULDBLOCK || errno == EAGAIN)
+								{
+									//其实没有出错
+									struct epoll_event epEvent;
+									epEvent.events = EPOLLIN;
+									epoll->add(sock, &epEvent);
+									Zebra::logger->debug("收到了一个异常消息");
+								}
+								else
+								{
+									//接收数据失败 断开连接
+									sock->DisConnet();
+								}								
+							}
+						}
+					}
+
+
+				}
+			}
+
+		}
+	}
+};
+
+
 
 
 
@@ -2412,7 +2514,7 @@ public:
 	}
 
 	bool connect();
-
+	bool connect(const char* ip, const WORD port);
 	virtual bool sendCmd(const void *pstrCmd, const int nCmdLen);
 	void setIP(const char *ip)
 	{
@@ -2472,6 +2574,53 @@ public:
 	}
 };
 
+
+class SuperClient;
+
+// 管理服务器以外的服务器需要继承的
+// 已经写好了 ， 连接管理服务器的方法
+class zSubNetService :public zNetService
+{
+protected:
+
+
+	WORD wdServerID; //服务器编号
+	WORD wdServerType; //服务器类型
+	char pstrIP[MAX_IP_LENGTH];
+	WORD wdPort;		//内网端口
+
+	zSubNetService(const std::string name, const WORD wdType);
+	bool init();
+	bool validate();
+	void final();
+
+private:
+	SuperClient *superClient;
+	static zSubNetService* subNetServiceInst;
+	zMutex mLockForServerEntry;		//与该服务器有关联的服务器列表锁
+	std::deque<Cmd::Super::ServerEntry> serverList;
+
+public:
+	
+	virtual ~zSubNetService();
+	static zSubNetService *subNetServiceInstance()
+	{
+		return subNetServiceInst;
+	}
+
+	virtual bool msgParse_SuperService(const Cmd::t_NullCmd *pNullCmd, const DWORD nCmdLen = 0);
+	
+	bool sendCmdToSuperServer(const void *pstrcmd, const int nCmdLen);
+	void setServerInfo(const Cmd::Super::t_Startup_Response *ptCmd);
+	bool addServerEntry(const Cmd::Super::ServerEntry &entry);
+
+	const Cmd::Super::ServerEntry *getServerEntryById(const WORD wdServerID);
+	const Cmd::Super::ServerEntry *getServerEntryByType(const WORD wdServerType);
+	const Cmd::Super::ServerEntry *getNextServerEntryByType(const WORD wdServerType, const Cmd::Super::ServerEntry **prev);
+
+	const WORD getServerID() const;
+	const WORD getServerType() const;
+};
 
 #define _ENGINE_H_
 #endif // !_ENGING_H_

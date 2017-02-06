@@ -4,12 +4,32 @@ zNetService* zNetService::instance = NULL;
 
 bool zNetService::init(WORD port)
 {
+
 	Zebra::logger->debug("zNetService init");
 	if (!zService::init())
 	{
 		Zebra::logger->debug("zService::init() init");
 		return false;
 	}
+	//初始化 epoll 线程池
+	epoll.create();
+	pEpollThread = new zEpollRecvThread(this, &epoll, serviceName);
+	if (pEpollThread == NULL)
+	{
+		Zebra::logger->error("Epoll 线程创建失败");
+		return false;
+	}
+
+	if (!pEpollThread->start())
+	{
+		Zebra::logger->error("Epoll 线程创建失败");
+		return false;
+	}
+
+	//等待 epoll wait
+	::usleep(200);
+
+
 
 	//初始化服务器
 	tcpServer = new zTCPServer(serviceName);
@@ -22,6 +42,7 @@ bool zNetService::init(WORD port)
 
 	if (!tcpServer->Bind(serviceName, port))
 	{
+		Zebra::logger->error("TCPServer Bind 失败");	
 		return false;
 	}
 
@@ -33,7 +54,7 @@ bool zNetService::init(WORD port)
 	}
 	if (!pAcceptThread->start())
 		return false;
-	Zebra::logger->debug("zNetService::init bind(%s:%u)", serviceName.c_str(), port);
+	Zebra::logger->debug("zNetService::init bind(%s:%u) ", tcpServer->getIP(), port);
 	return true;
 }
 
@@ -58,4 +79,10 @@ void zNetService::final()
 	Zebra::logger->info("zNetService::final");
 
 	SAFE_DELETE(tcpServer);
+}
+
+
+std::string zNetService::getServerName()
+{
+	return serviceName;
 }

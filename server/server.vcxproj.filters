@@ -37,6 +37,9 @@
     <ClInclude Include="..\superserver\superserver.h">
       <Filter>superserver</Filter>
     </ClInclude>
+    <ClInclude Include="..\test\test.h">
+      <Filter>test</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\test\test.cpp">
@@ -79,6 +82,9 @@
       <Filter>include</Filter>
     </ClCompile>
     <ClCompile Include="..\include\zTCPClient.cpp">
+      <Filter>include</Filter>
+    </ClCompile>
+    <ClCompile Include="..\include\zSubNetService.cpp">
       <Filter>include</Filter>
     </ClCompile>
   </ItemGroup>

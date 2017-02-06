@@ -1,0 +1,38 @@
+﻿生成启动时间为 2017/1/21 21:07:47。
+     1>项目“Z:\serverframe\server\server.vcxproj”在节点 2 上(Build 个目标)。
+     1>ClCompile:
+         H:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /I..\ /I.. /ZI /nologo /W3 /WX- /sdl /Od /Oy- /D _MBCS /Gm /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt ..\include\zEpoll.cpp ..\include\zLogger.cpp ..\include\zNetService.cpp ..\include\zService.cpp ..\include\zSocket.cpp ..\include\zTCPClient.cpp ..\include\zTCPServer.cpp ..\include\zTCPTask.cpp ..\include\zTCPTaskPool.cpp ..\include\zThread.cpp ..\superserver\serverManager.cpp ..\superserver\ServerTask.cpp ..\superserver\superserver.cpp ..\test\test.cpp
+         test.cpp
+     1>z:\serverframe\include\engine.h(19): fatal error C1083: 无法打开包括文件: “pthread.h”: No such file or directory
+         superserver.cpp
+     1>z:\serverframe\include\engine.h(19): fatal error C1083: 无法打开包括文件: “pthread.h”: No such file or directory
+         ServerTask.cpp
+     1>z:\serverframe\include\engine.h(19): fatal error C1083: 无法打开包括文件: “pthread.h”: No such file or directory
+         serverManager.cpp
+     1>z:\serverframe\include\engine.h(19): fatal error C1083: 无法打开包括文件: “pthread.h”: No such file or directory
+         zThread.cpp
+     1>z:\serverframe\include\engine.h(19): fatal error C1083: 无法打开包括文件: “pthread.h”: No such file or directory
+         zTCPTaskPool.cpp
+     1>z:\serverframe\include\engine.h(19): fatal error C1083: 无法打开包括文件: “pthread.h”: No such file or directory
+         zTCPTask.cpp
+     1>z:\serverframe\include\engine.h(19): fatal error C1083: 无法打开包括文件: “pthread.h”: No such file or directory
+         zTCPServer.cpp
+     1>z:\serverframe\include\engine.h(19): fatal error C1083: 无法打开包括文件: “pthread.h”: No such file or directory
+         zTCPClient.cpp
+     1>z:\serverframe\include\engine.h(19): fatal error C1083: 无法打开包括文件: “pthread.h”: No such file or directory
+         zSocket.cpp
+     1>z:\serverframe\include\engine.h(19): fatal error C1083: 无法打开包括文件: “pthread.h”: No such file or directory
+         zService.cpp
+     1>z:\serverframe\include\engine.h(19): fatal error C1083: 无法打开包括文件: “pthread.h”: No such file or directory
+         zNetService.cpp
+     1>z:\serverframe\include\engine.h(19): fatal error C1083: 无法打开包括文件: “pthread.h”: No such file or directory
+         zLogger.cpp
+     1>z:\serverframe\include\engine.h(19): fatal error C1083: 无法打开包括文件: “pthread.h”: No such file or directory
+         zEpoll.cpp
+     1>z:\serverframe\include\engine.h(19): fatal error C1083: 无法打开包括文件: “pthread.h”: No such file or directory
+         正在生成代码...
+     1>已完成生成项目“Z:\serverframe\server\server.vcxproj”(Build 个目标)的操作 - 失败。
+
+生成失败。
+
+已用时间 00:00:12.63

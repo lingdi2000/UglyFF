@@ -5,7 +5,7 @@ zTCPTask* g_DeletLog = NULL;
 
 zMutex g_DeleteLogLock;
 
-int zTCPTaskPool::usleep_time = 50000; //循环等待时间
+int zTCPTaskPool::usleep_time = 5000; //循环等待时间
 
 //所谓的外部容器
 typedef std::vector<zTCPTask *> zTCPTaskContainer;
@@ -30,21 +30,22 @@ public:
 	virtual ~zTCPTaskQueue(){}
 	inline void add(zTCPTask* task)
 	{
+
 		mlock.lock();
 		_queue.push_back(task);
 		_size++;
 		mlock.unlock();
+		
 	}
 
-	//重新加入？
 	inline void check_queue()
 	{
 		mlock.lock();
 		while (!_queue.empty())
 		{
-			mlock.lock();
+			
 			zTCPTask *task = _queue.back();
-			_queue.pop_back();
+			_queue.pop_back();		
 			_add(task); // 派生类实现的_add
 		}
 		_size = 0;
@@ -71,7 +72,7 @@ private:
 		task_count = tasks.size();
 		
 		m_Lock.unlock();
-		Zebra::logger->error("zVerifyThread::_add_end");
+		Zebra::logger->error("zVerifyThread::_add_end 新连接成功加入");
 	}
 
 	void remove(zTCPTask_IT &it, int p)
@@ -99,7 +100,7 @@ void zVerifyThread::run()
 	Zebra::logger->debug("zVerifyThread::run");
 	zRTime currentTime;
 	zTCPTask_IT it, next;
-	epollEventContainer::size_type i;
+
 
 	//DWORD dwBegin = 0;
 
@@ -107,12 +108,14 @@ void zVerifyThread::run()
 	{
 		currentTime.now();
 		check_queue();  //把其他线程交过来的 task 添加到 tasks内
+
 		m_Lock.lock();
 		if (!tasks.empty())
 		{
-			for (i = 0, it = tasks.begin(); it != tasks.end();)
+			for ( it = tasks.begin(); it != tasks.end();)
 			{
 				zTCPTask* task = *it;
+				//对于验证连接  10s 就超时
 				if (task->checkVerifyTimeout(currentTime))
 				{
 					//超过指定时间回收
@@ -123,17 +126,17 @@ void zVerifyThread::run()
 				}
 				else
 				{
-					i++;
+
 					it++;
 				}
 			}
 			//超时检查了以后 
 			if (!tasks.empty())
 			{
-				int  i = 0;
+
 				//bool state = false;
 
-				for (i = 0, it = tasks.begin(); it != tasks.end();)
+				for ( it = tasks.begin(); it != tasks.end();)
 				{
 					zTCPTask *task = *it;
 					int ret = task->WaitRecv(false);
@@ -183,7 +186,7 @@ void zVerifyThread::run()
 							break;
 						default:
 							//超时,下面会处理
-							i++;
+							
 							it++;
 							break;
 						}
@@ -191,7 +194,7 @@ void zVerifyThread::run()
 					else
 					{
 						// = 0 估计没有数据
-						i++;
+						//或者数据不全
 						it++;
 					}
 				}
@@ -209,7 +212,7 @@ void zVerifyThread::run()
 	//把所有等待验证队列中的连接加入到回收队列中,回收这些连接
 	if (tasks.size() == 0)
 		return;
-	for (i = 0, it = tasks.begin(); it != tasks.end();)
+	for (it = tasks.begin(); it != tasks.end();)
 	{
 		zTCPTask *task = *it;
 		/*remove(it, i);*/
@@ -327,7 +330,7 @@ private:
 
 	//pollfdContainer pfds;
 
-	zMutex m_Lock;
+	zMutex m_Lock; //给tasks的锁
 
 	void _add(zTCPTask *task)
 	{
@@ -394,11 +397,8 @@ void zOkayThread::run()
 	epollEventContainer::size_type i;
 
 	int time = pool->usleep_time;
-	epollEventContainer::iterator iter_r;
-	epollEventContainer pfds_r;
 
-	zTCPTaskContainer tasks_r;
-	bool check = false; //check是否需要 检查测试信号,以及连接的状态
+	//bool check = false; //check是否需要 检查测试信号,以及连接的状态
 	//DWORD dwBeginTime = 0;
 
 	while (!isFinal())
@@ -406,109 +406,94 @@ void zOkayThread::run()
 
 		currentTime.now();
 		check_queue();
-		if (check) 
+		
+		m_Lock.lock();
+		if (!tasks.empty())
 		{
-			m_Lock.lock();
-			if (!tasks.empty())
+			for (it = tasks.begin(); it != tasks.end();)
 			{
-				for (i = 0, it = tasks.begin(); it != tasks.end();)
-				{
-					zTCPTask *task = *it;
-					//检查测试信号指令 检查是否超时，或者发送信号
-					task->checkSignal(currentTime);
+				zTCPTask *task = *it;
+				//检查测试信号指令 检查是否超时
+				//同时 服务端 也给 客户端发送一个测试信号 表示服务器正常
+				task->checkSignal(currentTime);
 
-					if (task->isTerminateWait())
+				if (task->isTerminateWait())
+				{
+					task->Terminate();
+				}
+				if (task->isTerminate())
+				{
+					it = tasks.erase(it);
+					task_count = tasks.size();
+
+					task->getNextState();
+					pool->addRecycle(task);
+				}
+				else
+				{
+
+					it++;
+				}
+
+			}
+		}
+
+		m_Lock.unlock();
+		
+		zThread::usleep_(time );
+
+
+		m_Lock.lock();
+		if (!tasks.empty())
+		{
+			for ( it = tasks.begin(); it != tasks.end(); it++)
+			{
+				zTCPTask *task = (*it);
+				bool useEpoll = task->isUseEpoll();
+				if (useEpoll)
+				{
+
+					int retcode = task->WaitRecv(false); //这个用来检查套接口是否可用
+					if (retcode == -1)
 					{
-						task->Terminate();
+						//套接口出现错误
+						Zebra::logger->debug("zOkayThread::run: 套接口异常错误");
+						task->Terminate(zTCPTask::terminate_active);
 					}
-					if (task->isTerminate())
+					else if (retcode > 0)
 					{
-						it = tasks.erase(it);
-						task_count = tasks.size();
-						// state_sync -> state_okay
-						/*
-						* whj
-						* 先设置状态再添加容器,
-						* 否则会导致一个task同时在两个线程中的危险情况
-						*/
-						task->getNextState();
-						pool->addRecycle(task);
+						//套接口准备好读操作,参数是否需要读消息，目前消息都在epoll线程中获取
+						if (!task->ListeningRecv(false))
+						{
+							Zebra::logger->debug("zOkayThread::run: 套接口读操作错误");
+							task->Terminate(zTCPTask::terminate_active);
+						}
 					}
-					else
+					retcode = task->WaitSend(false);
+					if (retcode == -1)
 					{
-						i++;
-						it++;
+						//套接口出现错误
+						Zebra::logger->debug("zOkayThread::run: 套接口写操作异常错误");
+						task->Terminate(zTCPTask::terminate_active);
+					}
+					//写数据buffer里面有数据需要发送
+					else if (retcode > 0)
+					{
+						//套接口准备好了写入操作
+						if (!task->ListeningSend())
+						{
+							Zebra::logger->debug("zOkayThread::run: 套接口写操作错误 port = %u", task->getPort());
+							task->Terminate(zTCPTask::terminate_active);
+						}
 					}
 
 				}
 			}
-
-			m_Lock.unlock();
 		}
-		zThread::usleep_(time);
-		time = 0;
-		if (check)
-		{
-			if (time < 0)
-			{
-				time = 0;
-			}
-			continue;
-		}
-		if (time <= 0)
-		{
-			m_Lock.lock();
-			if (!tasks.empty())
-			{
-				for (i = 0, it = tasks.begin(); it != tasks.end(); it++, i++)
-				{
-					zTCPTask *task = (*it);
-					bool useEpoll = task->isUseEpoll();
-					if (useEpoll)
-					{
-					
-						int retcode = task->WaitRecv(false); //这个用来检查套接口是否可用
-						if (retcode == -1)
-						{
-							//套接口出现错误
-							Zebra::logger->debug("zOkayThread::run: 套接口异常错误");
-							task->Terminate(zTCPTask::terminate_active);
-						}
-						else if (retcode > 0)
-						{
-							//套接口准备好读操作
-							if (!task->ListeningRecv(true))
-							{
-								Zebra::logger->debug("zOkayThread::run: 套接口读操作错误");
-								task->Terminate(zTCPTask::terminate_active);
-							}
-						}
-						retcode = task->WaitSend(false);
-						if (retcode == -1)
-						{
-							//套接口出现错误
-							Zebra::logger->debug("zOkayThread::run: 套接口写操作异常错误");
-							task->Terminate(zTCPTask::terminate_active);
-						}
-						else if (retcode == 1)
-						{
-							//套接口准备好了写入操作
-							if (!task->ListeningSend())
-							{
-								Zebra::logger->debug("zOkayThread::run: 套接口写操作错误 port = %u", task->getPort());
 
-								task->Terminate(zTCPTask::terminate_active);
-							}
-						}
-
-					}
-				}
-			}
-
-			m_Lock.unlock();
-			time = pool->usleep_time;
-		}
-		check = true;
+		m_Lock.unlock();
+		
+		
 	}
 	//跳出循环
 	for (i = 0, it = tasks.begin(); it != tasks.end();)
@@ -593,8 +578,7 @@ void zRecycleThread::run()
 						//如果已经通过了唯一性验证,从全局唯一容器中删除
 						task->uniqueRemove();
 					task->getNextState();
-					//				if( !task->UseIocp() ) // [ranqd] 使用Iocp的连接不在这里回收
-					//					g_RecycleLog[task] = 0;
+					
 					SAFE_DELETE(task);
 					break;
 				default:
@@ -757,7 +741,7 @@ bool zTCPTaskPool::addRecycle(zTCPTask *task)
 
 bool zTCPTaskPool::init()
 {
-	Zebra::logger->debug("zTCPTaskPool::init");
+	Zebra::logger->debug("zTCPTaskPool::init ");
 	//初始化验证线程
 	for (int i = 0; i < maxVerifyThreads; i++)
 	{

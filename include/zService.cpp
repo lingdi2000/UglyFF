@@ -18,7 +18,7 @@ void zService::main()
 {
 	Zebra::logger->debug("zService::main");
 
-	if (init() && validate())
+	if (this->init() && this->validate())
 	{
 		while (!isTerminate())
 		{

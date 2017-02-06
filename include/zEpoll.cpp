@@ -60,6 +60,18 @@ int zEpoll::add(zSocket* zSock, epoll_event *event)
 	return -1;
 }
 
+int zEpoll::add(zSocket* zSock, uint32_t event)
+{
+	if (isValid())
+	{
+		struct epoll_event epEvent;
+		epEvent.events = event;
+		epEvent.data.ptr = zSock;
+		return add(zSock, &epEvent);
+	}
+	return -1;
+}
+
 int zEpoll::mod(zSocket* zSock, epoll_event *event)
 {
 	if (isValid())

@@ -15,6 +15,7 @@
     <ClInclude Include="..\include\engine.h" />
     <ClInclude Include="..\include\macro.h" />
     <ClInclude Include="..\superserver\superserver.h" />
+    <ClInclude Include="..\test\test.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\include\zEpoll.cpp" />
@@ -22,6 +23,7 @@
     <ClCompile Include="..\include\zNetService.cpp" />
     <ClCompile Include="..\include\zService.cpp" />
     <ClCompile Include="..\include\zSocket.cpp" />
+    <ClCompile Include="..\include\zSubNetService.cpp" />
     <ClCompile Include="..\include\zTCPClient.cpp" />
     <ClCompile Include="..\include\zTCPServer.cpp" />
     <ClCompile Include="..\include\zTCPTask.cpp" />
